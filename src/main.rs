@@ -1,4 +1,5 @@
 const BUFFER_SIZE: usize = 10;
+
 struct Screen {
     entries: [u16; BUFFER_SIZE],
     head: usize,
@@ -28,57 +29,70 @@ impl Screen {
     }
 }
 
-impl<'a> IntoIterator for &'a Screen {
-    type Item = &'a u16;
+impl<'a> IntoIterator for &'a mut Screen {
+    type Item = &'a mut u16;
     type IntoIter = ScreenIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         ScreenIterator {
-            pixel: self,
+            screen: self,
             index: 0,
         }
     }
 }
 
 pub struct ScreenIterator<'a> {
-    pixel: &'a Screen,
+    screen: &'a mut Screen,
     index: usize,
 }
 
 impl<'a> Iterator for ScreenIterator<'a> {
-    type Item = &'a u16;
-    fn next(&mut self) -> Option<&'a u16> {
-        let next = self.pixel.entries[self.pixel.head..]
-            .iter()
-            .chain(self.pixel.entries[..self.pixel.head].iter())
-            .take(self.pixel.len)
-            .skip(self.index)
-            .next();
-        self.index += 1;
-        next
+    type Item = &'a mut u16;
+    fn next(&mut self) -> Option<&'a mut u16> {
+        if self.index >= self.screen.len {
+            None
+        } else {
+            let idx: usize = (self.screen.head + self.index) % self.screen.entries.len();
+            unsafe {
+                let next = &mut self.screen.entries[idx] as *mut u16;
+                self.index += 1;
+                Some(&mut *next)
+            }
+        }
     }
 }
+
 fn main() {
     let mut p = Screen {
         entries: [0; BUFFER_SIZE],
         head: 0,
         len: 0,
     };
-    for i in 0..20 {
+
+    for i in 0..18 {
         p.push(i as u16);
         for component in p.into_iter() {
             print!("{} ", component);
         }
         println!();
     }
-    for _ in 0..20 {
-        match p.remove_last() {
-            Some(x) => println!("removed {}", x),
-            None => println!("not removed"),
-        }
-        for component in p.into_iter() {
-            print!("{} ", component);
-        }
-        println!();
+
+    for e in p.into_iter().take(9) {
+        *e = 42;
     }
+
+    for component in p.into_iter() {
+        print!("{} ", component);
+    }
+    println!();
+    // for _ in 0..20 {
+    //     match p.remove_last() {
+    //         Some(x) => println!("removed {}", x),
+    //         None => println!("not removed"),
+    //     }
+    //     for component in p.into_iter() {
+    //         print!("{} ", component);
+    //     }
+    //     println!();
+    // }
 }
