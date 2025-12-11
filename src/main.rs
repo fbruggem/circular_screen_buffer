@@ -1,90 +1,49 @@
-const BUFFER_SIZE: usize = 10;
+use crate::screen::Screen;
 
-struct Screen {
-    entries: [u16; BUFFER_SIZE],
-    head: usize,
-    len: usize,
-}
-
-impl Screen {
-    pub fn push(&mut self, e: u16) {
-        if self.entries.len() <= self.len {
-            self.entries[self.head] = e;
-            self.head += 1;
-        } else {
-            self.entries[(self.head + self.len) % self.entries.len()] = e;
-            self.len += 1;
-        }
-    }
-
-    pub fn remove_last(&mut self) -> Option<u16> {
-        if self.len == 0 {
-            None
-        } else {
-            let idx = (self.head + self.len - 1) % self.entries.len();
-            let e = self.entries[idx];
-            self.len -= 1;
-            Some(e)
-        }
-    }
-}
-
-impl<'a> IntoIterator for &'a mut Screen {
-    type Item = &'a mut u16;
-    type IntoIter = ScreenIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ScreenIterator {
-            screen: self,
-            index: 0,
-        }
-    }
-}
-
-pub struct ScreenIterator<'a> {
-    screen: &'a mut Screen,
-    index: usize,
-}
-
-impl<'a> Iterator for ScreenIterator<'a> {
-    type Item = &'a mut u16;
-    fn next(&mut self) -> Option<&'a mut u16> {
-        if self.index >= self.screen.len {
-            None
-        } else {
-            let idx: usize = (self.screen.head + self.index) % self.screen.entries.len();
-            unsafe {
-                let next = &mut self.screen.entries[idx] as *mut u16;
-                self.index += 1;
-                Some(&mut *next)
-            }
-        }
-    }
-}
+mod screen;
+mod vga;
 
 fn main() {
-    let mut p = Screen {
-        entries: [0; BUFFER_SIZE],
-        head: 0,
-        len: 0,
-    };
+    let mut s = Screen::default();
 
-    for i in 0..18 {
-        p.push(i as u16);
-        for component in p.into_iter() {
-            print!("{} ", component);
+    for _ in 0..100 {
+        s.push(0);
+    }
+
+    // *s.into_iter().skip(4).next().unwrap() = 1;
+
+    for component in s.into_iter() {
+        print!("{:?} ", component);
+    }
+
+    println!("");
+    println!("");
+
+    for line in s.lines() {
+        for c in line {
+            print!("{}", c);
         }
-        println!();
+        println!("");
     }
 
-    for e in p.into_iter().take(9) {
-        *e = 42;
-    }
+    // let mut p = Screen::default();
 
-    for component in p.into_iter() {
-        print!("{} ", component);
-    }
-    println!();
+    // for i in 0..=21 {
+    //     p.push(i as u16);
+    //     println!("{:?}", p.entries);
+    //     println!("{:?}", p.head);
+    //     println!();
+    // }
+    //
+    // for e in p.into_iter().take(9) {
+    //     *e = 42;
+    // }
+    //
+    // for component in p.into_iter() {
+    //     print!("{} ", component);
+    // }
+    // println!();
+
     // for _ in 0..20 {
     //     match p.remove_last() {
     //         Some(x) => println!("removed {}", x),
