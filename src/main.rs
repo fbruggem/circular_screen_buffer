@@ -1,4 +1,4 @@
-use crate::screen::Screen;
+use crate::{screen::Screen, vga::Buffer};
 
 mod screen;
 mod vga;
@@ -7,10 +7,10 @@ fn main() {
     let mut s = Screen::default();
 
     for _ in 0..100 {
-        s.push(0);
+        s.push(2);
     }
 
-    // *s.into_iter().skip(4).next().unwrap() = 1;
+    *s.into_iter().skip(4).next().unwrap() = 1;
 
     for component in s.into_iter() {
         print!("{:?} ", component);
@@ -19,11 +19,16 @@ fn main() {
     println!("");
     println!("");
 
-    for line in s.lines() {
+    for line in s.lines().skip(1) {
         for c in line {
             print!("{}", c);
         }
         println!("");
+    }
+
+    let buffer = Buffer::from_screen(&mut s);
+    for l in buffer.entries.iter() {
+        println!("{:?}", l);
     }
 
     // let mut p = Screen::default();
