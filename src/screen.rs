@@ -1,0 +1,93 @@
+use crate::{entry::Entry, vga::LinesIterator};
+
+pub const BUFFER_SIZE: usize = 10;
+
+pub struct Screen {
+    pub entries: [Entry; BUFFER_SIZE],
+    pub head: usize,
+    pub len: usize,
+}
+
+impl Screen {
+    pub fn default() -> Self {
+        Self {
+            entries: [Entry::new(b' '); BUFFER_SIZE],
+            head: 0,
+            len: 0,
+        }
+    }
+    pub fn push(&mut self, e: Entry) {
+        if self.entries.len() <= self.len {
+            self.entries[self.head] = e;
+            self.head += 1;
+            self.head %= BUFFER_SIZE;
+        } else {
+            self.entries[(self.head + self.len) % self.entries.len()] = e;
+            self.len += 1;
+        }
+    }
+
+    pub fn remove_last(&mut self) -> Option<Entry> {
+        if self.len == 0 {
+            None
+        } else {
+            let idx = (self.head + self.len - 1) % self.entries.len();
+            let e = self.entries[idx];
+            self.len -= 1;
+            Some(e)
+        }
+    }
+
+    pub fn lines<'a>(&'a mut self) -> LinesIterator<'a> {
+        LinesIterator::new(self)
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Screen {
+    type Item = &'a mut Entry;
+    type IntoIter = ScreenIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ScreenIterator {
+            screen: self,
+            index: 0,
+        }
+    }
+}
+
+pub struct ScreenIterator<'a> {
+    screen: &'a mut Screen,
+    index: usize,
+}
+
+impl<'a> Iterator for ScreenIterator<'a> {
+    type Item = &'a mut Entry;
+    fn next(&mut self) -> Option<&'a mut Entry> {
+        if self.index >= self.screen.len {
+            None
+        } else {
+            let idx: usize = (self.screen.head + self.index) % self.screen.entries.len();
+            unsafe {
+                let next = &mut self.screen.entries[idx] as *mut Entry;
+                self.index += 1;
+                Some(&mut *next)
+            }
+        }
+    }
+}
+
+impl<'a> DoubleEndedIterator for ScreenIterator<'a> {
+    fn next_back(&mut self) -> Option<&'a mut Entry> {
+        if self.index >= self.screen.len {
+            None
+        } else {
+            let offset = self.screen.len - self.index - 1;
+            let idx: usize = (self.screen.head + offset) % self.screen.entries.len();
+            unsafe {
+                let next = &mut self.screen.entries[idx] as *mut Entry;
+                self.index += 1;
+                Some(&mut *next)
+            }
+        }
+    }
+}
