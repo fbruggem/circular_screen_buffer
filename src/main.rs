@@ -6,15 +6,16 @@ mod vga;
 fn main() {
     let mut s = Screen::default();
 
-    for _ in 0..100 {
-        s.push(2);
+    for i in 0..23 {
+        s.push(i);
     }
 
+    for e in s.into_iter().rev() {
+        println!("{}", e);
+    }
+
+    return;
     *s.into_iter().skip(4).next().unwrap() = 1;
-
-    for component in s.into_iter() {
-        print!("{:?} ", component);
-    }
 
     println!("");
     println!("");
